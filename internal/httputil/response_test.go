@@ -45,35 +45,30 @@ func TestResponseMangler(t *testing.T) {
 	})
 }
 
-func TestResponseManglerUpgradeInterfaces(t *testing.T) {
-	responseWriter := &fakeResponseWriter{}
+func TestResponseManglerUnwrap(t *testing.T) {
+	responseWriter := httptest.NewRecorder()
 	responseMangler := &httputil.ResponseMangler{
 		ResponseWriter: responseWriter,
 		MangleFunc:     func(rw http.ResponseWriter) {},
 	}
 
-	// Traefik relies on http.Hijacker (through http.ResponseController) to
-	// upgrade WebSocket connections.
-	if _, ok := interface{}(responseMangler).(http.Hijacker); !ok {
-		t.Fatalf("ResponseMangler must implement http.Hijacker for WebSocket upgrades")
-	}
-	if _, ok := interface{}(responseMangler).(http.Flusher); !ok {
-		t.Fatalf("ResponseMangler must implement http.Flusher")
-	}
-
+	// Unwrap must expose the wrapped writer so http.ResponseController can
+	// reach it (used by Traefik to upgrade connections).
 	if unwrapped := responseMangler.Unwrap(); unwrapped != http.ResponseWriter(responseWriter) {
 		t.Fatalf("Unwrap must return the wrapped ResponseWriter")
 	}
+}
 
-	if _, _, err := responseMangler.Hijack(); err != nil {
-		t.Fatalf("Hijack returned unexpected error: %v", err)
-	}
-	if !responseWriter.hijacked {
-		t.Fatalf("Hijack must be forwarded to the wrapped ResponseWriter")
+func TestResponseManglerFlush(t *testing.T) {
+	responseWriter := httptest.NewRecorder()
+	responseMangler := &httputil.ResponseMangler{
+		ResponseWriter: responseWriter,
+		MangleFunc:     func(rw http.ResponseWriter) {},
 	}
 
 	responseMangler.Flush()
-	if !responseWriter.flushed {
+
+	if !responseWriter.Flushed {
 		t.Fatalf("Flush must be forwarded to the wrapped ResponseWriter")
 	}
 }
@@ -89,6 +84,8 @@ func TestResponseManglerHijackUnsupported(t *testing.T) {
 	}
 }
 
+// fakeResponseWriter is a ResponseWriter that supports hijacking and flushing.
+// It is used to check that ResponseMangler forwards those calls.
 type fakeResponseWriter struct {
 	header   http.Header
 	hijacked bool
@@ -114,3 +111,18 @@ func (f *fakeResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 func (f *fakeResponseWriter) Flush() { f.flushed = true }
+
+func TestResponseManglerHijackDelegates(t *testing.T) {
+	responseWriter := &fakeResponseWriter{}
+	responseMangler := &httputil.ResponseMangler{
+		ResponseWriter: responseWriter,
+		MangleFunc:     func(rw http.ResponseWriter) {},
+	}
+
+	if _, _, err := responseMangler.Hijack(); err != nil {
+		t.Fatalf("Hijack returned unexpected error: %v", err)
+	}
+	if !responseWriter.hijacked {
+		t.Fatalf("Hijack must be forwarded to the wrapped ResponseWriter")
+	}
+}

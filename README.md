@@ -90,15 +90,15 @@ Add the plugin to your Traefik configuration using the experimental plugins feat
 experimental:
   plugins:
     authentik-forward:
-      moduleName: "github.com/xabinapal/traefik-authentik-forward-plugin"
-      version: "v1.0.0"
+      moduleName: "github.com/ksmarty/traefik-authentik-forward-plugin"
+      version: "v1.0.2"
 ```
 
 **CLI**
 
 ```sh
---experimental.plugins.authentik-forward.modulename=github.com/xabinapal/traefik-authentik-forward-plugin
---experimental.plugins.authentik-forward.version=v1.0.0
+--experimental.plugins.authentik-forward.modulename=github.com/ksmarty/traefik-authentik-forward-plugin
+--experimental.plugins.authentik-forward.version=v1.0.2
 ```
 
 ## Configuration

@@ -15,14 +15,14 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=traefik-authentik-forward-plugin-sandbox
-      - --experimental.localPlugins.authentikForwardPlugin.modulename=github.com/xabinapal/traefik-authentik-forward-plugin
+      - --experimental.localPlugins.authentikForwardPlugin.modulename=github.com/ksmarty/traefik-authentik-forward-plugin
     ports:
       - "80:80"
       - "443:443"
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../:/plugins-local/src/github.com/xabinapal/traefik-authentik-forward-plugin:ro
+      - ../:/plugins-local/src/github.com/ksmarty/traefik-authentik-forward-plugin:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.traefik.rule=Host(`traefik.localhost`)

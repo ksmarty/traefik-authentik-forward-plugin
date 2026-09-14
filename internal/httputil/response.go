@@ -2,7 +2,7 @@ package httputil
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"net"
 	"net/http"
 )
@@ -31,7 +31,7 @@ func (rcm *ResponseMangler) Unwrap() http.ResponseWriter {
 func (rcm *ResponseMangler) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	hijacker, ok := rcm.ResponseWriter.(http.Hijacker)
 	if !ok {
-		return nil, nil, fmt.Errorf("httputil: underlying ResponseWriter does not support hijacking")
+		return nil, nil, errors.New("httputil: underlying ResponseWriter does not support hijacking")
 	}
 
 	return hijacker.Hijack()
