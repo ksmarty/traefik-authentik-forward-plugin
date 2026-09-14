@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/httputil"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/httputil"
 )
 
 const (

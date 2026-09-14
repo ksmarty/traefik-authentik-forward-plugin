@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/httputil"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/httputil"
 )
 
 func TestGetRequestURI(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	plugin "github.com/xabinapal/traefik-authentik-forward-plugin"
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/config"
+	plugin "github.com/ksmarty/traefik-authentik-forward-plugin"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/config"
 )
 
 func TestServeHTTP_UpstreamPaths(t *testing.T) {

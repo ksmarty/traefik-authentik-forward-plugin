@@ -2,7 +2,7 @@ displayName: Traefik Authentik Forward Plugin
 type: middleware
 iconPath: .assets/icon.png
 
-import: github.com/xabinapal/traefik-authentik-forward-plugin
+import: github.com/ksmarty/traefik-authentik-forward-plugin
 
 summary: Traefik plugin to integrate Authentik as a ForwardAuth provider, with enhanced workflow, streamlined configuration, and several bugfixes over the default implementation.
 

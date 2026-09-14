@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/authentik"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/authentik"
 )
 
 func TestIsSkippedPath(t *testing.T) {

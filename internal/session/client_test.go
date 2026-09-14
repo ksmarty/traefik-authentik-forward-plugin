@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/session"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/session"
 )
 
 func TestNewClient(t *testing.T) {

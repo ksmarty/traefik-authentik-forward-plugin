@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/config"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/config"
 )
 
 func TestParse_CacheDuration(t *testing.T) {

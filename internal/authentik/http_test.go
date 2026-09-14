@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/authentik"
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/httputil"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/authentik"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/httputil"
 )
 
 func contains(slice []string, value string) bool {

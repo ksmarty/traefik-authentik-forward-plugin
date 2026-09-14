@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/authentik"
-	"github.com/xabinapal/traefik-authentik-forward-plugin/internal/httpclient"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/authentik"
+	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/httpclient"
 )
 
 const (
