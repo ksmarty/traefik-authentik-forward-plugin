@@ -91,14 +91,14 @@ experimental:
   plugins:
     authentik-forward:
       moduleName: "github.com/ksmarty/traefik-authentik-forward-plugin"
-      version: "v1.0.2"
+      version: "v1.0.3"
 ```
 
 **CLI**
 
 ```sh
 --experimental.plugins.authentik-forward.modulename=github.com/ksmarty/traefik-authentik-forward-plugin
---experimental.plugins.authentik-forward.version=v1.0.2
+--experimental.plugins.authentik-forward.version=v1.0.3
 ```
 
 ## Configuration
