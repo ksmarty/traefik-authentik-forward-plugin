@@ -84,31 +84,27 @@ jobs:
           for pkg in $(go list ./...); do
             yaegi test -v "${pkg}"
           done
-  # Reports the hash Traefik will compare against for a tag, and whether the
-  # registry archive still matches the Go module zip. Informational on purpose:
-  # the registry repacks archives, so a mismatch here is a warning that a pinned
-  # hash will drift, not a reason to block a release.
-  hash:
-    name: plugin hash
+  # A remote install only works for a catalogued version: Traefik asks
+  # /public/validate/<module>/<version> and proceeds on 200. A hash is not an
+  # alternative - the registry repacks archives for the same version, so a pin
+  # eventually stops matching and disables the plugin. This job reports whether
+  # the tag is installable, so a release is not mistaken for a working one.
+  catalogue:
+    name: catalogue record
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - name: checkout code
-        uses: actions/checkout@v4
-
-      - name: compute plugin hash
+      - name: check the plugin catalogue
         run: |
-          version="${GITHUB_REF_NAME}"
-          if ! hash=$(./scripts/plugin-hash.sh "${version}" 2>/tmp/hash.err); then
-            cat /tmp/hash.err
-            echo "::warning::could not compute a hash for ${version} (is the tag on proxy.golang.org yet?)"
-            exit 0
+          module=github.com/ksmarty/traefik-authentik-forward-plugin
+          url="https://plugins.traefik.io/public/validate/${module}/${GITHUB_REF_NAME}"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$url" || echo 000)
+          echo "${GITHUB_REF_NAME}: validate -> ${code}"
+          if [ "$code" != "200" ]; then
+            echo "::warning::${GITHUB_REF_NAME} is not catalogued yet (validate ${code}); a remote install needs newer-less config or a catalogued version"
           fi
-          cat /tmp/hash.err
           {
-            echo "### Plugin hash for ${version}"
+            echo "### Catalogue status for ${GITHUB_REF_NAME}"
             echo
-            echo '```'
-            echo "${hash}"
-            echo '```'
-          } >> "${GITHUB_STEP_SUMMARY}"
+            echo "\`/public/validate\` returned **${code}** (200 = installable without a hash, no pin needed)."
+          } >> "$GITHUB_STEP_SUMMARY"

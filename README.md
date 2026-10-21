@@ -91,43 +91,50 @@ experimental:
   plugins:
     authentik-forward:
       moduleName: "github.com/ksmarty/traefik-authentik-forward-plugin"
-      version: "v1.0.4"
+      version: "v1.0.2"
 ```
+
+The examples use the newest *catalogued* version (see the check below); the newest
+tag may not be catalogued yet.
 
 **CLI**
 
 ```sh
 --experimental.plugins.authentik-forward.modulename=github.com/ksmarty/traefik-authentik-forward-plugin
---experimental.plugins.authentik-forward.version=v1.0.4
+--experimental.plugins.authentik-forward.version=v1.0.2
 ```
 
-**Computing the `hash`**
+**Do not pin a `hash`**
 
-Traefik's plugin catalogue has no record for this module, so
-`/public/validate/<module>/<version>` answers `404` and Traefik refuses to load the
-plugin unless a `hash` is configured. With a `hash` it downloads the archive and
-compares it locally instead, so the value must be the sha256 of the bytes the
-registry serves:
+Traefik installs a remote plugin *without* a `hash` as long as the version has a
+catalogue record: it asks `/public/validate/<module>/<version>` and proceeds on
+`200`.
 
 ```sh
-make hash VERSION=v1.0.4      # or: scripts/plugin-hash.sh v1.0.4
+curl -o /dev/null -w '%{http_code}\n' \
+  https://plugins.traefik.io/public/validate/github.com/ksmarty/traefik-authentik-forward-plugin/v1.0.2
+# 200 -> installable as-is; 404 -> this version is not catalogued yet
 ```
 
-Two caveats, both measured against the live registry:
+A `hash` only substitutes for that lookup, by comparing a constant against the
+archive Traefik downloads — and **those bytes are not stable**. Measured on
+`v1.0.2`, the registry served two different archives with identical content
+(65 entries, byte-identical files): 130297 bytes (`28c24624…`) and 131610 bytes
+(`7acbe8d6…`). When the pin stops matching, Traefik rejects it and disables *all*
+plugins:
 
-- **It repacks archives.** For `v1.0.2` it served two different zips of identical
-  content ten minutes apart — 65 entries, byte-identical files, but 130297 bytes
-  (`28c24624…`) and 131610 bytes (`7acbe8d6…`). `proxy.golang.org`'s module zip is
-  stable and matches the second. A pinned hash therefore matches only the
-  packaging it was computed from; once it stops matching, Traefik logs
-  `invalid hash for plugin <module>, expected <pinned>, got <downloaded>` and
-  disables the plugin.
-- **Leaving it unset is not an option either**, because the catalogue record is
-  precisely what is missing.
+```
+invalid hash for plugin github.com/ksmarty/traefik-authentik-forward-plugin,
+expected 28c24624…, got 7acbe8d6…
+```
 
-If Traefik restarts unattended or you upgrade it, prefer a **local plugin** —
-`experimental.localPlugins` with the source vendored into
-`plugins-local/<module>/` — which has no archive, no hash and no catalogue lookup.
+So a pinned hash breaks on some future restart, at random, and a Traefik upgrade
+is what usually triggers the restart. If the version you want returns `404` from
+the validate endpoint, install the newest version that returns `200` (or use a
+local plugin) — but do not pin a hash.
+
+`make hash VERSION=…` prints the value the registry serves right now. It is a
+diagnostic for a failure you are debugging, not something to commit to a stack.
 
 ## Configuration
 
