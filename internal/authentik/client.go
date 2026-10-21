@@ -3,6 +3,7 @@ package authentik
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -61,7 +62,7 @@ func (c *Client) Check(meta *RequestMeta) (*ResponseMeta, error) {
 			Cookies:         GetCookies(res),
 		}
 	default:
-		return nil, fmt.Errorf("unexpected response: %d", res.StatusCode)
+		return nil, unexpectedStatus(res, NginxPath)
 	}
 
 	// cache session
@@ -72,6 +73,29 @@ func (c *Client) Check(meta *RequestMeta) (*ResponseMeta, error) {
 		Cached:  false,
 		Session: s,
 	}, nil
+}
+
+// maxErrorBodySize caps how much of authentik's response body an error quotes,
+// so a large HTML error page cannot flood the caller.
+const maxErrorBodySize = 256
+
+// unexpectedStatus reports an authentik response that is neither 200 (allowed)
+// nor 401 (challenged).
+//
+// The body is quoted because it is the only clue to why authentik refused: a
+// plain-text "404 page not found" means authentik's own router answered, which
+// happens when the traefik outpost is missing for the host, or when authentik's
+// core is down, and not when the upstream is unreachable. Without the body all
+// of those collapse into the bare "unexpected response: 404".
+func unexpectedStatus(res *http.Response, path string) error {
+	body, _ := io.ReadAll(io.LimitReader(res.Body, maxErrorBodySize))
+
+	detail := strings.TrimSpace(string(body))
+	if detail == "" {
+		detail = http.StatusText(res.StatusCode)
+	}
+
+	return fmt.Errorf("unexpected response from authentik for %s: %d %s", path, res.StatusCode, detail)
 }
 
 func (c *Client) Request(meta *RequestMeta, path string, query string) (*http.Response, error) {

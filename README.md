@@ -91,15 +91,43 @@ experimental:
   plugins:
     authentik-forward:
       moduleName: "github.com/ksmarty/traefik-authentik-forward-plugin"
-      version: "v1.0.3"
+      version: "v1.0.4"
 ```
 
 **CLI**
 
 ```sh
 --experimental.plugins.authentik-forward.modulename=github.com/ksmarty/traefik-authentik-forward-plugin
---experimental.plugins.authentik-forward.version=v1.0.3
+--experimental.plugins.authentik-forward.version=v1.0.4
 ```
+
+**Computing the `hash`**
+
+Traefik's plugin catalogue has no record for this module, so
+`/public/validate/<module>/<version>` answers `404` and Traefik refuses to load the
+plugin unless a `hash` is configured. With a `hash` it downloads the archive and
+compares it locally instead, so the value must be the sha256 of the bytes the
+registry serves:
+
+```sh
+make hash VERSION=v1.0.4      # or: scripts/plugin-hash.sh v1.0.4
+```
+
+Two caveats, both measured against the live registry:
+
+- **It repacks archives.** For `v1.0.2` it served two different zips of identical
+  content ten minutes apart — 65 entries, byte-identical files, but 130297 bytes
+  (`28c24624…`) and 131610 bytes (`7acbe8d6…`). `proxy.golang.org`'s module zip is
+  stable and matches the second. A pinned hash therefore matches only the
+  packaging it was computed from; once it stops matching, Traefik logs
+  `invalid hash for plugin <module>, expected <pinned>, got <downloaded>` and
+  disables the plugin.
+- **Leaving it unset is not an option either**, because the catalogue record is
+  precisely what is missing.
+
+If Traefik restarts unattended or you upgrade it, prefer a **local plugin** —
+`experimental.localPlugins` with the source vendored into
+`plugins-local/<module>/` — which has no archive, no hash and no catalogue lookup.
 
 ## Configuration
 

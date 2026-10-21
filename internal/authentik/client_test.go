@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/ksmarty/traefik-authentik-forward-plugin/internal/authentik"
@@ -371,4 +372,36 @@ func TestRequest(t *testing.T) {
 			t.Errorf("expected cookie %s=%s, got %s=%s", expectedName, expectedValue, response.Cookies()[0].Name, response.Cookies()[0].Value)
 		}
 	})
+}
+
+func TestCheckUnexpectedStatusQuotesAuthentik(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("404 page not found\n"))
+	}))
+	defer server.Close()
+
+	client, err := authentik.NewClient(context.Background(), server.Client(), &authentik.Config{Address: server.URL})
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	meta := &authentik.RequestMeta{
+		URL:     &url.URL{Scheme: "https", Host: "example.com", Path: "/protected"},
+		Cookies: []*http.Cookie{},
+	}
+
+	_, err = client.Check(meta)
+	if err == nil {
+		t.Fatalf("expected error, got none")
+	}
+
+	// the status alone is not enough: quoting the body is what tells an operator
+	// that authentik answered, rather than the upstream being unreachable
+	for _, want := range []string{"404", "/outpost.goauthentik.io/auth/nginx", "404 page not found"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("expected error %q to contain %q", err, want)
+		}
+	}
 }

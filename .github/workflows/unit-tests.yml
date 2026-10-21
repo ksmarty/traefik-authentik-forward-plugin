@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
     branches:
       - main
@@ -82,3 +84,31 @@ jobs:
           for pkg in $(go list ./...); do
             yaegi test -v "${pkg}"
           done
+  # Reports the hash Traefik will compare against for a tag, and whether the
+  # registry archive still matches the Go module zip. Informational on purpose:
+  # the registry repacks archives, so a mismatch here is a warning that a pinned
+  # hash will drift, not a reason to block a release.
+  hash:
+    name: plugin hash
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: compute plugin hash
+        run: |
+          version="${GITHUB_REF_NAME}"
+          if ! hash=$(./scripts/plugin-hash.sh "${version}" 2>/tmp/hash.err); then
+            cat /tmp/hash.err
+            echo "::warning::could not compute a hash for ${version} (is the tag on proxy.golang.org yet?)"
+            exit 0
+          fi
+          cat /tmp/hash.err
+          {
+            echo "### Plugin hash for ${version}"
+            echo
+            echo '```'
+            echo "${hash}"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -87,6 +88,17 @@ func (p *Plugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// badGateway reports a failure of the authentik hop.
+//
+// 502 rather than 500 says which side broke: the gateway in front of the client
+// (authentik unreachable, the outpost missing for this host, or its core still
+// restarting), not this plugin. The error is logged as well, because the body
+// alone is easy to miss when the same failure hits every route at once.
+func (p *Plugin) badGateway(rw http.ResponseWriter, err error) {
+	log.Printf("[%s] %v", p.name, err)
+	http.Error(rw, err.Error(), http.StatusBadGateway)
+}
+
 func (p *Plugin) handleRequest(req *http.Request) (*authentik.RequestMeta, error) {
 	url, err := httputil.GetRequestURI(req)
 	if err != nil {
@@ -122,7 +134,7 @@ func (p *Plugin) handleAuthentik(meta *authentik.RequestMeta, req *http.Request,
 	// send request to authentik
 	res, err := p.client.Request(meta, meta.URL.Path, meta.URL.RawQuery)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		p.badGateway(rw, err)
 		return
 	}
 	defer func() { _ = res.Body.Close() }()
@@ -156,7 +168,7 @@ func (p *Plugin) handleUpstream(meta *authentik.RequestMeta, req *http.Request, 
 	// check if request is authenticated in authentik
 	resMeta, err := p.client.Check(meta)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		p.badGateway(rw, err)
 		return
 	}
 

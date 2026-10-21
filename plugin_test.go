@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	plugin "github.com/ksmarty/traefik-authentik-forward-plugin"
@@ -400,6 +401,49 @@ func TestServeHTTP_AuthentikPaths(t *testing.T) {
 		actualCode := rw.Code
 		if actualCode != expectedCode {
 			t.Errorf("expected status %d, got %d", expectedCode, actualCode)
+		}
+	})
+}
+
+func TestServeHTTP_AuthentikFailure(t *testing.T) {
+	t.Run("unexpected authentik status becomes a 502", func(t *testing.T) {
+		akServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.WriteHeader(http.StatusNotFound)
+			_, _ = rw.Write([]byte("404 page not found\n"))
+		}))
+		defer akServer.Close()
+
+		nextCalled := false
+		next := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			nextCalled = true
+			rw.WriteHeader(http.StatusAccepted)
+		})
+
+		config := &config.Config{
+			Address: akServer.URL,
+
+			UnauthorizedStatusCode: http.StatusForbidden,
+			RedirectStatusCode:     http.StatusMovedPermanently,
+		}
+		handler, err := plugin.New(context.Background(), next, config, "test")
+		if err != nil {
+			t.Fatalf("failed to create plugin: %v", err)
+		}
+
+		rw := httptest.NewRecorder()
+		handler.ServeHTTP(rw, httptest.NewRequest(http.MethodGet, "http://example.com/users", nil))
+
+		if nextCalled {
+			t.Fatalf("expected next handler not to be called")
+		}
+
+		expectedCode := http.StatusBadGateway
+		if rw.Code != expectedCode {
+			t.Errorf("expected status %d, got %d", expectedCode, rw.Code)
+		}
+
+		if !strings.Contains(rw.Body.String(), "404 page not found") {
+			t.Errorf("expected body to quote authentik's response, got %q", rw.Body.String())
 		}
 	})
 }
